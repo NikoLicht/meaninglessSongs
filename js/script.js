@@ -7,12 +7,15 @@ let verses = []
 let chorus = ""
 let rhymePattern = ["A", "B", "A", "B"]
 let wikiExtract = ""   
+let compiledSong = ""
+let isParsingComplete = false
+let currentRhyme = ""
 
 function generateSong(verses, versesBetweenChorus){
   let song = ""
   let versCounter = 0;
   for(var i = 0; i > verses; i++){
-    song += generateVers()
+    compiledSong += generateVers()
     versCounter++
     if(versCounter >= versesBetweenChorus){
       if(chorus == ""){
@@ -24,6 +27,7 @@ function generateSong(verses, versesBetweenChorus){
       versCounter = 0
     }
   }
+
   return song
 }
 
@@ -36,22 +40,49 @@ function generateVers(){
       if(firstSentence == "" || firstSentence == undefined){
         console.log(wikiText)
         firstSentence = findSentence(wikiText)
+        compiledSong += firstSentence
+        compiledSong += "\n"
+        console.log("first Sentence is: " + firstSentence)
       }
       //TODO: for each time this is done, it is gonna select the same rhyme
-      getArrayWithRhymingWords(findLastWord(firstSentence))
+      
+      let lastWord = findLastWord(findSentence(wikiText))
+      getArrayWithRhymingWords(lastWord)
       indexUsed ++
       usedLetters.push(letter)
     }
   }
   for(let i = 0; i < rhymePattern.length; i++){
     //TODO: this is just for testing
-    let newSentence = generateSentence(selectRandomWord(0))
-    vers += newSentence
-    vers += "\n"
-    console.log(`this is sentence number ${i}: ${newSentence}`) 
+    waitUntilScriptHasParsed(0, function(){
+      //console.log("Rhyme: " + currentRhyme)
+      let newSentence = generateSentence(currentRhyme)
+      vers += newSentence
+      vers += "\n"
+      compiledSong += vers
+      console.log(`sentence #${i}: ${newSentence}`) 
+    })
   }
-
+  compiledSong += vers
   return vers
+}
+
+function waitUntilScriptHasParsed(index, callback){
+  if(isParsingComplete == false){
+    setTimeout(function(){
+      waitUntilScriptHasParsed(index, callback)
+    }, 1000)
+  }else{
+    if(rhymeScheme[0] == undefined){
+      console.log("The rhymeScheme is not defined")
+      waitUntilScriptHasParsed(index)
+    }
+    else{
+      currentRhyme = selectRandomWord(index)
+      callback()
+      return selectRandomWord(index)
+    }
+  }
 }
 
 function generateChorus(){
@@ -75,7 +106,7 @@ function getWikipediaData(){
 function parseWiki(data){
   console.log("parsing Data")
   wikiText = data.summary.description
-  console.log(generateSong(2, 1));
+  generateSong(4,1)
   return wikiText 
 }
 
@@ -83,41 +114,46 @@ function findSentence(text){
   let regularExpression =/\s+[^.!?\(\),]*[\W]/g  
   let matchArray = text.match(regularExpression) 
   //TODO: only using the first match
-  let sentence = matchArray[0] 
+  let sentence = matchArray[Math.floor(Math.random()*matchArray.length-1)] 
   return sentence
 }
 
 function findLastWord(text){
+  statusLog(" SEARCHING FOR LAST WORD")
   let regEx = /(\w+)/g
   let matchArray = text.match(regEx)
-  console.log(matchArray)
+  console.log("selected word: " + matchArray[matchArray.length - 1])
   return matchArray[matchArray.length - 1]
 }
 
 function getArrayWithRhymingWords(word){
+  console.log("STATUS RETRIEVING DATA FROM WIKI")
   const url = "https://api.datamuse.com/words?rel_rhy=" + word
   $.get(url, function(data, status){
     parseRhymingWords(data)
-    console.log("STATUS: CALLING PARSER")
+    statusLog(" CALLING PARSER")
   })
 }
 
 function parseRhymingWords(wordsArray){
-  let emptyArray = []
-  rhymeScheme.push(emptyArray)
+  statusLog(" PARSING RHYMING WORDS")
+  let wordList = []
   for(let word of wordsArray){
-    rhymeScheme[rhymeScheme.length-1].push(word["word"]) 
+    wordList.push(word["word"]) 
   } 
-  console.log("parseFunction " + rhymeScheme[0][0])
-  console.log(rhymeScheme)
-}
+  rhymeScheme.push(wordList)
+  if(rhymeScheme[0] != undefined){
+    isParsingComplete = true
+  }
+  else{
+    console.log("ERROR ARRAY NOT CORRECT")
+  }
+ }
 
 function selectRandomWord(rhymeCategory){
-  console.log("STATUS: SELECTING RANDOM WORD")
-  console.log(rhymeScheme)
-  console.log(rhymeScheme[rhymeScheme.length - 1])
+  statusLog(" SELECTING RANDOM WORD")
   let randomIndex = Math.floor(Math.random()*rhymeScheme[rhymeCategory].length)
-  console.log("magic index is: " + randomIndex)
+  //console.log(rhymeScheme)
   return rhymeScheme[rhymeCategory][randomIndex]
 }
 
@@ -130,6 +166,10 @@ function generateSentence(lastWordInNewSentence){
 
 function main(){
   getWikipediaData()
+}
+
+function statusLog(status){
+  //console.log("STATUS: " + status.toUpperCase)
 }
 
 main()
