@@ -10,6 +10,8 @@ let wikiExtract = ""
 let compiledSong = ""
 let isParsingComplete = false
 let currentRhyme = ""
+let rhymeLookUp = {}
+let songArray = []
 
 function generateSong(verses, versesBetweenChorus){
   let song = ""
@@ -30,40 +32,40 @@ function generateSong(verses, versesBetweenChorus){
 
   return song
 }
+function addToSong(line){
+  compiledSong += line + "\n"
+  songArray.push(line)
+  console.log("selected sentencen: " + line)
+}
 
 function generateVers(){
   let vers = ""
   let indexUsed = -1 
   let usedLetters = []
+  let lineCounter = 0
+  let verseArray = []
   for(let letter of rhymePattern){
     if(usedLetters.includes(letter) == false){
-      if(firstSentence == "" || firstSentence == undefined){
-        console.log(wikiText)
-        firstSentence = findSentence(wikiText)
-        compiledSong += firstSentence
-        compiledSong += "\n"
-        console.log("first Sentence is: " + firstSentence)
-      }
-      //TODO: for each time this is done, it is gonna select the same rhyme
-      
-      let lastWord = findLastWord(findSentence(wikiText))
+      let newLine = findSentence(wikiText)
+      addToSong(newLine)
+      lineCounter ++
+      let lastWord = findLastWord(newLine)
       getArrayWithRhymingWords(lastWord)
       indexUsed ++
       usedLetters.push(letter)
+      rhymeLookUp[letter] = indexUsed
+    }
+    else{
+      let index = rhymeLookUp[letter] 
+      waitUntilScriptHasParsed(index, function(){
+        let newSentence = generateSentence(currentRhyme)
+        vers += newSentence
+        vers += "\n"
+        addToSong(newSentence)
+      })
+
     }
   }
-  for(let i = 0; i < rhymePattern.length; i++){
-    //TODO: this is just for testing
-    waitUntilScriptHasParsed(0, function(){
-      //console.log("Rhyme: " + currentRhyme)
-      let newSentence = generateSentence(currentRhyme)
-      vers += newSentence
-      vers += "\n"
-      compiledSong += vers
-      console.log(`sentence #${i}: ${newSentence}`) 
-    })
-  }
-  compiledSong += vers
   return vers
 }
 
