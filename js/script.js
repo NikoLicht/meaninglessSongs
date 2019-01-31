@@ -96,6 +96,11 @@ function getWikipediaData(){
   let wikiWord = [
     "Banana",
     "Rhyme",
+    "carnival",
+    "soundwaves",
+    "subversion",
+    "abstract",
+    "scream",
     "Word",
     "Language",
     "Song"
